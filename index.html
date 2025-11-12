@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pad 5: Saldo Calculator - Match 5</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Correcte bedragen op basis van de items uit de Mo & Salima casus
+        const CORRECT_VALUES = {
+            VASTE_INKOMSTEN: 3911.59, 
+            VARIABELE_INKOMSTEN: 20.00,
+            VASTE_UITGAVEN: 2523.09, 
+            VARIABELE_UITGAVEN: 1067.00, 
+        };
+
+        // Helper om de invoer van de leerling te parsen (accepteert komma en punt)
+        const parseInput = (value) => {
+            const cleanedValue = value.replace(',', '.').replace(/[^\d.]/g, '');
+            return parseFloat(cleanedValue) || 0;
+        };
+
+        // Formatteren van bedrag naar EUR
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('nl-BE', { 
+                style: 'currency', 
+                currency: 'EUR',
+                minimumFractionDigits: 2,
+            }).format(amount);
+        };
+
+        const InputField = ({ label, name, value, onChange, isCorrect, showResults }) => (
+            <div className="flex flex-col">
+                <label htmlFor={name} className="text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                    {label}
+                    {showResults && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {isCorrect ? 'JUIST' : `FOUT (${formatCurrency(CORRECT_VALUES[name])})`}
+                        </span>
+                    )}
+                </label>
+                <input
+                    type="text"
+                    id={name}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder="Vb. 3911,59 of 3911.59" 
+                    className={`p-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${showResults && !isCorrect ? 'border-red-500' : 'border-gray-300'}`}
+                />
+            </div>
+        );
+
+        const ResultCard = ({ title, value, isPositive = true }) => (
+            <div className={`p-4 rounded-lg shadow-md ${isPositive ? 'bg-green-50' : 'bg-red-50'}`}>
+                <p className="text-sm font-medium text-gray-600">{title}</p>
+                <p className={`text-2xl font-bold mt-1 ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                    {formatCurrency(value)}
+                </p>
+            </div>
+        );
+
+        const Pad5App = () => {
+            const [inputs, setInputs] = useState({
+                VASTE_INKOMSTEN: '',
+                VARIABELE_INKOMSTEN: '',
+                VASTE_UITGAVEN: '',
+                VARIABELE_UITGAVEN: '',
+            });
+
+            const [savingsInput, setSavingsInput] = useState('');
+            const [showResults, setShowResults] = useState(false);
+            const [error, setError] = useState('');
+
+            // Veld-verander handler
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setInputs(prev => ({ ...prev, [name]: value }));
+            };
+
+            // Besparings-verander handler
+            const handleSavingsChange = (e) => {
+                setSavingsInput(e.target.value);
+            };
+
+            // Controleer resultaten
+            const checkCalculations = () => {
+                // Check of er iets ingevoerd is
+                if (Object.values(inputs).some(val => val.trim() === '')) {
+                     setError("Vul alle vier de categorieën in.");
+                     setShowResults(false);
+                     return;
+                }
+
+                setShowResults(true);
+                setError('');
+            };
+
+            // Bereken waarden (alleen wanneer nodig)
+            const VI = parseInput(inputs.VASTE_INKOMSTEN);
+            const VAI = parseInput(inputs.VARIABELE_INKOMSTEN);
+            const VU = parseInput(inputs.VASTE_UITGAVEN);
+            const VAU = parseInput(inputs.VARIABELE_UITGAVEN);
+            
+            const totalIncome = VI + VAI;
+            const totalExpenses = VU + VAU;
+            const calculatedSaldo = totalIncome - totalExpenses;
+
+            // Besparingssimulatie
+            const savingsAmount = parseInput(savingsInput);
+            const newSaldoAfterSavings = calculatedSaldo + savingsAmount;
+
+            // Check of een waarde correct is
+            const isVICorrect = parseInput(inputs.VASTE_INKOMSTEN) === CORRECT_VALUES.VASTE_INKOMSTEN;
+            const isVAICorrect = parseInput(inputs.VARIABELE_INKOMSTEN) === CORRECT_VALUES.VARIABELE_INKOMSTEN;
+            const isVUCorrect = parseInput(inputs.VASTE_UITGAVEN) === CORRECT_VALUES.VASTE_UITGAVEN;
+            const isVAUCorrect = parseInput(inputs.VARIABELE_UITGAVEN) === CORRECT_VALUES.VARIABELE_UITGAVEN;
+
+            // --- MAIN RENDER ---
+            return (
+                <div className="p-4 md:p-8">
+                    <div className="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+                        
+                        {/* HEADER */}
+                        <header className="text-center mb-8">
+                            <h1 className="text-3xl font-extrabold text-indigo-600 mb-2">📊 Pad 5: Saldo Calculator (Mo & Salima)</h1>
+                            <p className="text-lg text-gray-600">Voer de **totalen** van de vier categorieën in die je manueel berekend hebt in het Digiboek (Oefening 3).</p>
+                        </header>
+
+                        {/* INPUT GRID */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b pb-6 mb-6">
+                            
+                            {/* Inkomsten Column */}
+                            <div>
+                                <h2 className="text-xl font-bold text-green-600 mb-4 border-b border-green-200 pb-2">Inkomsten (Mo & Salima)</h2>
+                                <div className="space-y-4">
+                                    <InputField 
+                                        label="1. Totaal Vaste Inkomsten (€)" 
+                                        name="VASTE_INKOMSTEN"
+                                        value={inputs.VASTE_INKOMSTEN}
+                                        onChange={handleChange}
+                                        isCorrect={isVICorrect}
+                                        showResults={showResults}
+                                    />
+                                    <InputField 
+                                        label="2. Totaal Variabele Inkomsten (€)" 
+                                        name="VARIABELE_INKOMSTEN"
+                                        value={inputs.VARIABELE_INKOMSTEN}
+                                        onChange={handleChange}
+                                        isCorrect={isVAICorrect}
+                                        showResults={showResults}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Uitgaven Column */}
+                            <div>
+                                <h2 className="text-xl font-bold text-red-600 mb-4 border-b border-red-200 pb-2">Uitgaven (Mo & Salima)</h2>
+                                <div className="space-y-4">
+                                    <InputField 
+                                        label="3. Totaal Vaste Uitgaven (€)" 
+                                        name="VASTE_UITGAVEN"
+                                        value={inputs.VASTE_UITGAVEN}
+                                        onChange={handleChange}
+                                        isCorrect={isVUCorrect}
+                                        showResults={showResults}
+                                    />
+                                    <InputField 
+                                        label="4. Totaal Variabele Uitgaven (€)" 
+                                        name="VARIABELE_UITGAVEN"
+                                        value={inputs.VARIABELE_UITGAVEN}
+                                        onChange={handleChange}
+                                        isCorrect={isVAUCorrect}
+                                        showResults={showResults}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ACTIE KNOP & ERROR */}
+                        <div className="text-center mb-6">
+                             {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+                            <button
+                                onClick={checkCalculations}
+                                className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition-all text-lg"
+                            >
+                                Controleer en Bereken Saldo
+                            </button>
+                        </div>
+
+                        {/* RESULTATEN SECTIE */}
+                        {showResults && (
+                            <div className="mt-8 pt-6 border-t border-gray-200">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Financieel Overzicht</h2>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <ResultCard title="Totaal Inkomsten" value={totalIncome} isPositive={true} />
+                                    <ResultCard title="Totaal Uitgaven" value={totalExpenses} isPositive={false} />
+                                    <ResultCard 
+                                        title="Jouw Berekend Saldo" 
+                                        value={calculatedSaldo} 
+                                        isPositive={calculatedSaldo >= 0} 
+                                    />
+                                </div>
+                                <p className="text-sm text-center mt-4 text-gray-500">
+                                    * Het correcte saldo is {formatCurrency(CORRECT_VALUES.VASTE_INKOMSTEN + CORRECT_VALUES.VARIABELE_INKOMSTEN - (CORRECT_VALUES.VASTE_UITGAVEN + CORRECT_VALUES.VARIABELE_UITGAVEN))}
+                                </p>
+
+                                {/* SIMULATIE VAN BESPARINGEN */}
+                                <div className="mt-8 p-6 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg">
+                                    <h3 className="text-xl font-bold text-yellow-800 mb-3">💰 Besparing Simulatie</h3>
+                                    <p className="text-gray-700 mb-4">Mo en Salima willen meer overhouden. Op welke **Variabele Uitgaven** kunnen ze besparen? Voer het totale besparingsbedrag hieronder in.</p>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-4 items-center">
+                                        <div className="flex flex-col flex-grow w-full">
+                                            <label htmlFor="savingsInput" className="text-sm font-medium text-gray-700 mb-1">
+                                                Totaal Besparingsbedrag (€)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="savingsInput"
+                                                value={savingsInput}
+                                                onChange={handleSavingsChange}
+                                                placeholder="Voer een bedrag in, vb: 150"
+                                                className="p-3 border border-yellow-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500"
+                                            />
+                                        </div>
+                                        
+                                        <div className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+                                            <p className="text-sm font-medium text-gray-700 mb-1">Nieuw Saldo</p>
+                                            <p className={`text-2xl font-bold p-3 rounded-lg ${newSaldoAfterSavings >= 0 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                                                {formatCurrency(newSaldoAfterSavings)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Render de app naar de 'root' div
+        ReactDOM.render(<Pad5App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
